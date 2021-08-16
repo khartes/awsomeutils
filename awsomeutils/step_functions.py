@@ -1,21 +1,17 @@
-from cerberus import Validator, schema_registry
-
-VALIDATOR = Validator(allow_unknown=True)
+from .safe_kwargs import safe_kwargs
 
 #######################################################################################################
 #
 #  mark_as_failed
 #
 #######################################################################################################
-schema_registry.add('mark_as_failed', {
-    'jobs': {'required': True, 'type': 'list'},
+@safe_kwargs({
+    'jobs': {'required': True, 'type': 'list', 'minlength': 1},
     'failed_jobs': {'type': 'list'},
     'processed_jobs': {'type': 'list'}
 })
 def mark_as_failed(**kwargs):
     try:
-        if not VALIDATOR.validate(kwargs, schema_registry.get('mark_as_failed')): raise ValueError(VALIDATOR.errors)
-
         jobs = kwargs['jobs']
         failed_jobs = kwargs.get('failed_jobs', [])
         
@@ -33,15 +29,13 @@ def mark_as_failed(**kwargs):
 #  mark_as_processed
 #
 #######################################################################################################
-schema_registry.add('mark_as_processed', {
-    'jobs': {'required': True, 'type': 'list'},
+@safe_kwargs({
+    'jobs': {'required': True, 'type': 'list', 'minlength': 1},
     'failed_jobs': {'type': 'list'},
     'processed_jobs': {'type': 'list'}
 })
 def mark_as_processed(**kwargs):
     try:
-        if not VALIDATOR.validate(kwargs, schema_registry.get('mark_as_processed')): raise ValueError(VALIDATOR.errors)
-
         jobs = kwargs['jobs']
         processed_jobs = kwargs.get('processed_jobs', [])
         

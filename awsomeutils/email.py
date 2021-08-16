@@ -1,8 +1,6 @@
 import smtplib
 from email.message import EmailMessage
-from cerberus import Validator, schema_registry
-
-VALIDATOR = Validator()
+from .safe_kwargs import safe_kwargs
 
 EMAIL_REGEX = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
 
@@ -11,7 +9,7 @@ EMAIL_REGEX = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
 #  send
 #
 #######################################################################################################
-schema_registry.add('send', {
+@safe_kwargs({
     'message': {'required': True, 'type': 'dict', 'schema': {
         'email': {'required': True, 'type': 'string', 'regex': EMAIL_REGEX},
         'subject': {'required': True, 'type': 'string'},
@@ -23,8 +21,6 @@ schema_registry.add('send', {
 })
 def send(**kwargs):
     try:
-        if not VALIDATOR.validate(kwargs, schema_registry.get('send')): raise ValueError(VALIDATOR.errors)
-
         message = kwargs['message']
         server = open_server_connection(kwargs['host'], kwargs['port'], kwargs['user'], kwargs['password'])
 
@@ -32,7 +28,11 @@ def send(**kwargs):
         server.sendmail(kwargs['user'], message['email'], mail.as_string())
 
         server.close()      
-      
+
+        return {
+            'status_code': 200
+        }
+
     except Exception as e:
         raise e
 

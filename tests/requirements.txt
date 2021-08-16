@@ -1,0 +1,5 @@
+boto3
+cerberus
+moto[ec2, s3]
+pytest
+git+git://github.com/lowks/minimock.git@v1.3.0#egg=minimock
