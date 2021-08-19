@@ -10,21 +10,35 @@ EMAIL_REGEX = r'(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)'
 #
 #######################################################################################################
 @safe_kwargs({
-    'message': {'required': True, 'type': 'dict', 'schema': {
-        'email': {'required': True, 'type': 'string', 'regex': EMAIL_REGEX},
+    'message': {'required': True, 'doc': 'Message to be sent. Keys:', 'type': 'dict', 'schema': {
+        'email': {'required': True, 'type': 'string', 'regex': EMAIL_REGEX, 'doc': 'Receiver\'s e-mail address'},
         'subject': {'required': True, 'type': 'string'},
         'body': {'required': True, 'type': 'string'}}},
-    'host': {'required': True, 'type': 'string'},
-    'port': {'required': True, 'type': 'integer'},
-    'user': {'required': True, 'type': 'string'},
-    'password': {'required': True, 'type': 'string'}
+    'host': {'required': True, 'type': 'string', 'doc': 'SMTP server\'s address'},
+    'port': {'required': True, 'type': 'integer', 'doc': 'SMTP server\'s port'},
+    'user': {'required': True, 'type': 'string', 'doc': 'SMTP server\'s username'},
+    'password': {'required': True, 'type': 'string', 'doc': 'SMTP server\'s password'}
 })
 def send(**kwargs):
+    """Send an e-mail message.
+
+    Args:
+        **kwargs: keyword arguments. See below.
+
+    Keyword Args:
+        ${safe_kwargs}
+
+    Raises:
+        ValueError: in case of missing or invalid kwargs.
+
+    Returns:
+        The following dict for success: { 'status_code': 200 }
+    """    
     try:
         message = kwargs['message']
-        server = open_server_connection(kwargs['host'], kwargs['port'], kwargs['user'], kwargs['password'])
+        server = _open_server_connection(kwargs['host'], kwargs['port'], kwargs['user'], kwargs['password'])
 
-        mail = build_message(message['subject'], message['body'])
+        mail = _build_message(message['subject'], message['body'])
         server.sendmail(kwargs['user'], message['email'], mail.as_string())
 
         server.close()      
@@ -37,9 +51,9 @@ def send(**kwargs):
         raise e
 
 #------------------------------------------------------------------------------------------------------
-#  build_message
+#  _build_message
 #------------------------------------------------------------------------------------------------------
-def build_message(subject, body):
+def _build_message(subject, body):
     try:
         msg = EmailMessage()
 
@@ -52,9 +66,9 @@ def build_message(subject, body):
        raise e
 
 #------------------------------------------------------------------------------------------------------
-#  open_server_connection
+#  _open_server_connection
 #------------------------------------------------------------------------------------------------------
-def open_server_connection(host, port, user, password):
+def _open_server_connection(host, port, user, password):
     try:   
         server = smtplib.SMTP_SSL(host, port)
 

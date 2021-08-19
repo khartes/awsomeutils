@@ -11,30 +11,52 @@ IPV6_REGEX = r'^(([0-9a-fA-F]{1,4}:){7,7}[0-9a-fA-F]{1,4}|([0-9a-fA-F]{1,4}:){1,
 #
 #######################################################################################################
 @safe_kwargs({
-    'security_group_id': {'required': True, 'type': 'string'},
-    'comment': {'type': 'string'},
-    'port': {'required': True, 'type': 'integer'},
-    'protocol': {'required': True, 'type': 'string'},
-    'allowed_ipv4_addresses': {'required': True, 'type': 'list', 'schema': {'type': 'string', 'regex': IPV4_REGEX}},
-    'allowed_ipv6_addresses': {'required': True, 'type': 'list', 'schema': {'type': 'string', 'regex': IPV6_REGEX}}
+    'security_group_id': {'required': True, 'type': 'string', 'doc': 'the ID of the security group.'},
+    'comment': {'type': 'string', 'doc': 'rule\'s description.'},
+    'port': {'required': True, 'type': 'integer', 'doc': 'port for TCP and UDP protocols.'},
+    'protocol': {'required': True, 'type': 'string', 'doc': 'IP protocol name (tcp, udp, icmp, icmpv6) or -1 to specify all protocols.'},
+    'allowed_ipv4_addresses': {'required': True, 'type': 'list', 'schema': {'type': 'string', 'regex': IPV4_REGEX}, 'doc': 'IPv4 ranges. Use /32 to single IPv4 address.'},
+    'allowed_ipv6_addresses': {'required': True, 'type': 'list', 'schema': {'type': 'string', 'regex': IPV6_REGEX}, 'doc': 'IPv6 ranges. Use /128 to single IPv6 address.'}
 })
 def update_security_group(**kwargs):
+    """Update the rules of a security group.
+
+    Args:
+        **kwargs: keyword arguments. See below.
+
+    Keyword Args:
+        ${safe_kwargs}
+
+    Raises:
+        ValueError: in case of missing or invalid kwargs.
+
+    Returns:
+        The following dict for success: 
+            {
+                "port": 123,
+                "protocol": 'string',
+                "revoked_ipv4_addresses": ['string'],
+                "authorized_ipv4_addresses": ['string'],
+                "revoked_ipv6_addresses": ['string'],
+                "authorized_ipv6_addresses": ['string']
+            }
+    """    
     try:
         new_rule = kwargs
         ec2 = boto3.resource('ec2')
         security_group = ec2.SecurityGroup(new_rule['security_group_id'])
         port = new_rule['port']
         protocol = new_rule['protocol']
-        current_rule = get_rule(security_group, port, protocol)
+        current_rule = _get_rule(security_group, port, protocol)
 
         new_rule['allowed_ipv4_addresses'] = [str(ipaddress.ip_network(ip)) for ip in new_rule['allowed_ipv4_addresses']]
         new_rule['allowed_ipv6_addresses'] = [str(ipaddress.ip_network(ip)) for ip in new_rule['allowed_ipv6_addresses']]
         
-        revoking_addresses = diff_addresses(current_rule, new_rule)
-        set_rule('revoke', security_group, port, protocol, revoking_addresses)
+        revoking_addresses = _diff_addresses(current_rule, new_rule)
+        _set_rule('revoke', security_group, port, protocol, revoking_addresses)
         
-        authorizing_addresses = diff_addresses(new_rule, current_rule)
-        set_rule('authorize', security_group, port, protocol, authorizing_addresses)
+        authorizing_addresses = _diff_addresses(new_rule, current_rule)
+        _set_rule('authorize', security_group, port, protocol, authorizing_addresses)
 
         return {
             "port": port,
@@ -49,24 +71,24 @@ def update_security_group(**kwargs):
         raise e
 
 #------------------------------------------------------------------------------------------------------
-#  diff_addresses
+#  _diff_addresses
 #------------------------------------------------------------------------------------------------------
-def diff_addresses(addresses1, addresses2):
+def _diff_addresses(addresses1, addresses2):
     return {
-        'allowed_ipv4_addresses': diff_list(addresses1['allowed_ipv4_addresses'], addresses2['allowed_ipv4_addresses']),
-        'allowed_ipv6_addresses': diff_list(addresses1['allowed_ipv6_addresses'], addresses2['allowed_ipv6_addresses'])
+        'allowed_ipv4_addresses': _diff_list(addresses1['allowed_ipv4_addresses'], addresses2['allowed_ipv4_addresses']),
+        'allowed_ipv6_addresses': _diff_list(addresses1['allowed_ipv6_addresses'], addresses2['allowed_ipv6_addresses'])
     }
 
 #------------------------------------------------------------------------------------------------------
-#  diff_list
+#  _diff_list
 #------------------------------------------------------------------------------------------------------
-def diff_list(list1, list2):
+def _diff_list(list1, list2):
     return (list(set(list1) - set(list2)))
 
 #------------------------------------------------------------------------------------------------------
-#  get_rule
+#  _get_rule
 #------------------------------------------------------------------------------------------------------
-def get_rule(security_group, port, protocol):
+def _get_rule(security_group, port, protocol):
     allowed_ipv4_addresses = []
     allowed_ipv6_addresses = []
 
@@ -84,9 +106,9 @@ def get_rule(security_group, port, protocol):
     }
 
 #------------------------------------------------------------------------------------------------------
-#  set_rule
+#  _set_rule
 #------------------------------------------------------------------------------------------------------
-def set_rule(action, security_group, port, protocol, addresses):
+def _set_rule(action, security_group, port, protocol, addresses):
     try:
         if len(addresses['allowed_ipv4_addresses']) == 0 and len(addresses['allowed_ipv6_addresses']) == 0:
             return
