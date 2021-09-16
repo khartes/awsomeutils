@@ -30,7 +30,7 @@ class TestMarkAsFailed:
             mark_as_failed(jobs=[], failed_jobs=[], processed_jobs=[])
 
     def test_move_failed_job(self):
-        kwargs = {"jobs": [{"job_#": 1}, {"job_#": 2}, {"job_#": 3}]}
+        kwargs = {"jobs": [{"job_#": 1}, {"job_#": 2}, {"job_#": 3}], "unknow": True}
         jobs_len = len(kwargs['jobs'])
         failed_job = kwargs['jobs'][0]
         result = mark_as_failed(**kwargs)
@@ -60,7 +60,7 @@ class TestMarkAsProcessed:
             mark_as_processed(jobs=[], failed_jobs=[], processed_jobs=[])
 
     def test_move_processed_job(self):
-        kwargs = {"jobs": [{"job_#": 1}, {"job_#": 2}, {"job_#": 3}]}
+        kwargs = {"jobs": [{"job_#": 1}, {"job_#": 2}, {"job_#": 3}], "unknow": True}
         jobs_len = len(kwargs['jobs'])
         processed_job = kwargs['jobs'][0]
         result = mark_as_processed(**kwargs)

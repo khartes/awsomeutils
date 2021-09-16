@@ -27,7 +27,7 @@ def safe_kwargs(schema):
         def validate_kwargs(*args, **kwargs):
             schema_name = f"{args[0].__class__.__name__}.{func.__name__}" if len(args) else func.__name__
             schema_registry.add(schema_name, schema)
-            v = SafeKwargsValidator(schema)
+            v = SafeKwargsValidator(schema, allow_unknown=True)
             if not v.validate(kwargs, schema_registry.get(schema_name)):
                 raise ValueError(v.errors)
             return func(*args, **kwargs)
